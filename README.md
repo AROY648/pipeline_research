@@ -1,1 +1,6 @@
 # pipeline_research
+Ce qu'il faut savoir (limites à documenter dans le README)
+Biais du survivant. La liste est la composition du TSX 60 au 31 janvier 2026. En l'appliquant à 2010, on ignore les titres sortis de l'indice (faillites, rachats). Ça embellit un peu les résultats. C'est acceptable pour un projet portfolio si c'est écrit noir sur blanc dans le README ; la vraie solution serait un historique de composition (payant).
+Historique des fondamentaux court. Yahoo ne donne gratuitement qu'environ 4 ans d'états annuels et 5 trimestres. Conséquence : le momentum et la volatilité pourront être testés depuis 2010, mais le facteur value seulement sur les dernières années. La table snapshot, elle, s'enrichit chaque jour où tu relances le script (c'est ce que fera la Task quotidienne).
+Date de fin de période ≠ date de publication. period_end est la fin du trimestre, mais les résultats sortent 1 à 3 mois plus tard. Pour éviter le look-ahead bias, la couche clean décalera chaque chiffre (ex. +90 jours) avant de l'utiliser.
+Devises. Le prix est en CAD, mais plusieurs sociétés publient leurs comptes en USD (financial_currency). Pour le book-to-market, il faudra convertir dans la même devise (on ajoutera le taux USD/CAD dans la couche clean).
