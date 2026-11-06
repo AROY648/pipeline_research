@@ -1,0 +1,5 @@
+pandas
+yfinance
+duckdb
+python-dotenv
+snowflake-connector-python

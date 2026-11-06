@@ -1,0 +1,18 @@
+# Environnement / secrets
+.venv/
+.env
+
+# Données locales (recréables par les scripts)
+data/
+*.duckdb
+*.duckdb.wal
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Éditeur / OS
+.vscode/
+Thumbs.db
+.DS_Store

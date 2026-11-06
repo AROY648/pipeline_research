@@ -1,0 +1,61 @@
+symbol_tsx,yahoo_ticker,company,sector
+AEM,AEM.TO,Agnico Eagle Mines,Basic Materials
+ATD,ATD.TO,Alimentation Couche-Tard,Consumer Cyclical
+BMO,BMO.TO,Bank of Montreal,Financial Services
+BNS,BNS.TO,Bank of Nova Scotia,Financial Services
+ABX,ABX.TO,Barrick Mining,Basic Materials
+BCE,BCE.TO,BCE,Communication Services
+BAM,BAM.TO,Brookfield Asset Management,Financial Services
+BN,BN.TO,Brookfield Corporation,Financial Services
+BIP.UN,BIP-UN.TO,Brookfield Infrastructure Partners,Utilities
+CAE,CAE.TO,CAE,Industrials
+CCO,CCO.TO,Cameco,Energy
+CM,CM.TO,Canadian Imperial Bank of Commerce,Financial Services
+CNR,CNR.TO,Canadian National Railway,Industrials
+CNQ,CNQ.TO,Canadian Natural Resources,Energy
+CP,CP.TO,Canadian Pacific Kansas City,Industrials
+CTC.A,CTC-A.TO,Canadian Tire,Consumer Cyclical
+CCL.B,CCL-B.TO,CCL Industries,Consumer Cyclical
+CLS,CLS.TO,Celestica,Information Technology
+CVE,CVE.TO,Cenovus Energy,Energy
+GIB.A,GIB-A.TO,CGI,Information Technology
+CSU,CSU.TO,Constellation Software,Information Technology
+DOL,DOL.TO,Dollarama,Consumer Staples
+EMA,EMA.TO,Emera,Utilities
+ENB,ENB.TO,Enbridge,Energy
+FFH,FFH.TO,Fairfax Financial Holdings,Financial Services
+FM,FM.TO,First Quantum Minerals,Basic Materials
+FSV,FSV.TO,FirstService,Real Estate
+FTS,FTS.TO,Fortis,Utilities
+FNV,FNV.TO,Franco-Nevada,Basic Materials
+WN,WN.TO,George Weston,Consumer Staples
+GIL,GIL.TO,Gildan Activewear,Consumer Cyclical
+H,H.TO,Hydro One,Utilities
+IMO,IMO.TO,Imperial Oil,Energy
+IFC,IFC.TO,Intact Financial,Financial Services
+K,K.TO,Kinross Gold,Basic Materials
+L,L.TO,Loblaw Companies,Consumer Staples
+MG,MG.TO,Magna International,Consumer Cyclical
+MFC,MFC.TO,Manulife Financial,Financial Services
+MRU,MRU.TO,Metro,Consumer Staples
+NA,NA.TO,National Bank of Canada,Financial Services
+NTR,NTR.TO,Nutrien,Basic Materials
+OTEX,OTEX.TO,Open Text,Information Technology
+PPL,PPL.TO,Pembina Pipeline,Energy
+POW,POW.TO,Power Corporation of Canada,Financial Services
+QSR,QSR.TO,Restaurant Brands International,Consumer Cyclical
+RCI.B,RCI-B.TO,Rogers Communications,Communication Services
+RY,RY.TO,Royal Bank of Canada,Financial Services
+SAP,SAP.TO,Saputo,Consumer Staples
+SHOP,SHOP.TO,Shopify,Information Technology
+SLF,SLF.TO,Sun Life Financial,Financial Services
+SU,SU.TO,Suncor Energy,Energy
+TRP,TRP.TO,TC Energy,Energy
+TECK.B,TECK-B.TO,Teck Resources,Basic Materials
+T,T.TO,Telus,Communication Services
+TRI,TRI.TO,Thomson Reuters,Industrials
+TD,TD.TO,Toronto-Dominion Bank,Financial Services
+TOU,TOU.TO,Tourmaline Oil,Energy
+WCN,WCN.TO,Waste Connections,Industrials
+WPM,WPM.TO,Wheaton Precious Metals,Basic Materials
+WSP,WSP.TO,WSP Global,Industrials
