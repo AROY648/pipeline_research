@@ -1,7 +1,7 @@
 """
 Exécute les fichiers SQL de transformation dans l'ordre (10_, 11_, 12_, ...) puis affiche des contrôles.
 
-    python sql/run_sql.py            # couches clean (1x_) puis analytics (2x_)
+    python sql/run_sql.py            # clean (1x_), analytics (2x_), backtest (3x_)
     python sql/run_sql.py 12         # seulement les fichiers qui commencent par 12
 """
 from __future__ import annotations
@@ -47,11 +47,16 @@ CHECKS = {
                ROUND(MIN(book_to_market), 2) AS bm_min, ROUND(MAX(book_to_market), 2) AS bm_max
         FROM analytics.factors_monthly
         WHERE month = (SELECT MAX(month) FROM analytics.factors_monthly WHERE is_complete_month)""",
+    "Portefeuilles du backtest": """
+        SELECT factor, COUNT(*) AS mois, MIN(return_month) AS debut, MAX(return_month) AS fin,
+               ROUND(AVG(n_long), 1) AS titres_long, ROUND(AVG(n_short), 1) AS titres_short,
+               ROUND(AVG(ls_ret) * 100, 2) AS ls_moyen_pct, ROUND(AVG(turnover) * 100, 1) AS turnover_pct
+        FROM analytics.backtest_returns GROUP BY factor ORDER BY factor""",
 }
 
 
 def main() -> None:
-    prefixes = sys.argv[1:] or ["1", "2"]          # 1x_ = clean, 2x_ = analytics
+    prefixes = sys.argv[1:] or ["1", "2", "3"]     # 1x_ clean, 2x_ analytics, 3x_ backtest
     files = sorted({p.name for pre in prefixes for p in SQL_DIR.glob(f"{pre}*.sql")})
     if not files:
         raise SystemExit(f"Aucun fichier sql/ commençant par {prefixes}")
