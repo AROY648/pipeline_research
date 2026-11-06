@@ -1,7 +1,7 @@
 """
 Exécute les fichiers SQL de transformation dans l'ordre (10_, 11_, 12_, ...) puis affiche des contrôles.
 
-    python sql/run_sql.py            # tous les fichiers 1x_ (couche clean)
+    python sql/run_sql.py            # couches clean (1x_) puis analytics (2x_)
     python sql/run_sql.py 12         # seulement les fichiers qui commencent par 12
 """
 from __future__ import annotations
@@ -29,14 +29,32 @@ CHECKS = {
         SELECT frequency, reporting_currency, COUNT(*) AS lignes, COUNT(DISTINCT ticker) AS titres,
                CAST(COUNT_IF(flag_missing_book) AS INTEGER) AS sans_book, CAST(COUNT_IF(flag_missing_fx) AS INTEGER) AS sans_fx
         FROM clean.fundamentals GROUP BY ALL ORDER BY ALL""",
+    "Rendements mensuels": """
+        SELECT COUNT(*) AS lignes, COUNT(DISTINCT ticker) AS titres, MIN(month) AS premier_mois,
+               MAX(month) AS dernier_mois, ROUND(AVG(ret_1m) * 100, 2) AS rend_moyen_pct
+        FROM analytics.returns_monthly WHERE is_complete_month""",
+    "Couverture des facteurs (nb de titres classés par année, en décembre ou dernier mois)": """
+        SELECT YEAR(month) AS annee, COUNT(*) AS titres,
+               COUNT(mom_12_1) AS momentum, COUNT(vol_60d) AS volatilite, COUNT(book_to_market) AS value
+        FROM analytics.factors_monthly
+        WHERE month IN (SELECT MAX(month) FROM analytics.factors_monthly
+                        WHERE is_complete_month GROUP BY YEAR(month))
+        GROUP BY annee ORDER BY annee""",
+    "Distribution des facteurs (dernier mois complet)": """
+        SELECT ROUND(MEDIAN(mom_12_1) * 100, 1) AS mom_median_pct,
+               ROUND(MEDIAN(vol_60d) * 100, 1)  AS vol_median_pct,
+               ROUND(MEDIAN(book_to_market), 2) AS bm_median,
+               ROUND(MIN(book_to_market), 2) AS bm_min, ROUND(MAX(book_to_market), 2) AS bm_max
+        FROM analytics.factors_monthly
+        WHERE month = (SELECT MAX(month) FROM analytics.factors_monthly WHERE is_complete_month)""",
 }
 
 
 def main() -> None:
-    prefix = sys.argv[1] if len(sys.argv) > 1 else "1"
-    files = sorted(p.name for p in SQL_DIR.glob(f"{prefix}*.sql"))
+    prefixes = sys.argv[1:] or ["1", "2"]          # 1x_ = clean, 2x_ = analytics
+    files = sorted({p.name for pre in prefixes for p in SQL_DIR.glob(f"{pre}*.sql")})
     if not files:
-        raise SystemExit(f"Aucun fichier sql/{prefix}*.sql")
+        raise SystemExit(f"Aucun fichier sql/ commençant par {prefixes}")
     with connect() as con:
         for name in files:
             print(f"-> {name}")
