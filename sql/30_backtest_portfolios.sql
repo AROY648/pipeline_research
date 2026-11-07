@@ -28,6 +28,10 @@ legs AS (
     SELECT 'volatility', month, ticker, fwd_ret_1m,
            CASE q_volatility WHEN 1 THEN 'long' WHEN 5 THEN 'short' END
     FROM eligible
+    UNION ALL
+    SELECT 'reversal', month, ticker, fwd_ret_1m,
+           CASE q_reversal   WHEN 1 THEN 'long' WHEN 5 THEN 'short' END
+    FROM eligible
 )
 SELECT
     factor,

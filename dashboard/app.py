@@ -20,12 +20,14 @@ from common import DB_PATH, TICKERS_FILE  # noqa: E402
 st.set_page_config(page_title="Facteurs TSX 60", layout="wide")
 
 # Couleurs fixes par entité (palette validée daltonisme). Ne jamais réattribuer selon le filtre.
-FACTOR_COLORS = {"momentum": "#2a78d6", "value": "#eb6834", "volatility": "#1baf7a"}
-LEG_COLORS = {"Jambe longue": "#6250d6", "Jambe courte": "#eda100"}
+FACTOR_COLORS = {"momentum": "#2a78d6", "value": "#eb6834", "volatility": "#1baf7a", "reversal": "#eda100"}
+LEG_COLORS = {"Jambe longue": "#6250d6", "Jambe courte": "#e87ba4"}
 FACTOR_LABELS = {
     "momentum": "Momentum 12-1 (long gagnants / short perdants)",
     "value": "Value B/M (long bon marché / short cher)",
     "volatility": "Low volatility (long peu volatils / short très volatils)",
+    "reversal": "Reversal 1-1 (long retournements / short tendance)",
+    "reversal": "Retournement 1 mois (long perdants du mois / short gagnants)",
 }
 
 
@@ -149,16 +151,15 @@ with st.expander("Tableau complet des métriques"):
 # ---------------------------------------------------------------- positions du dernier mois
 st.subheader("Positions actuelles")
 names = pd.read_csv(TICKERS_FILE)[["yahoo_ticker", "company", "sector"]]
-last = query("""
-    SELECT f.ticker, f.month, f.mom_12_1, f.vol_60d, f.book_to_market, f.q_momentum, f.q_volatility, f.q_value
-    FROM analytics.factors_monthly f
-    WHERE f.month = (SELECT MAX(month) FROM analytics.factors_monthly WHERE is_complete_month)
+last = query("""SELECT f.ticker, f.month, f.mom_12_1, f.vol_60d, f.book_to_market, f.rev_1m,
+           f.q_momentum, f.q_volatility, f.q_value, f.q_reversal
 """).merge(names, left_on="ticker", right_on="yahoo_ticker", how="left")
 pos_factor = st.selectbox("Facteur", factors, format_func=lambda f: FACTOR_LABELS[f])
 qcol, vcol, fmt = {"momentum": ("q_momentum", "mom_12_1", "{:+.1%}"),
                    "value": ("q_value", "book_to_market", "{:.2f}"),
-                   "volatility": ("q_volatility", "vol_60d", "{:.1%}")}[pos_factor]
-long_q, short_q = (1, 5) if pos_factor == "volatility" else (5, 1)
+                   "volatility": ("q_volatility", "vol_60d", "{:.1%}"),
+                   "reversal": ("q_reversal", "rev_1m", "{:+.1%}")}[pos_factor]
+long_q, short_q = (1, 5) if pos_factor in ("volatility", "reversal") else (5, 1)
 st.caption(f"Portefeuille formé fin {last['month'].iloc[0]:%m/%Y}, détenu le mois suivant.")
 cl, cs = st.columns(2)
 for col, title, q in ((cl, "Achat (long)", long_q), (cs, "Vente à découvert (short)", short_q)):
@@ -167,6 +168,74 @@ for col, title, q in ((cl, "Achat (long)", long_q), (cs, "Vente à découvert (s
     col.markdown(f"**{title}** · {len(leg)} titres")
     col.dataframe(leg.rename(columns={"company": "société", "sector": "secteur", "valeur": vcol}),
                   hide_index=True, width="stretch")
+
+# ---------------------------------------------------------------- pairs trading
+st.subheader("Pairs trading")
+try:
+    pairs_daily = query("SELECT * FROM analytics.pairs_daily ORDER BY hold_months, date")
+    pairs_trades = query("SELECT * FROM analytics.pairs_trades")
+except duckdb.Error:
+    pairs_daily = pd.DataFrame()
+if pairs_daily.empty:
+    st.info("Lance python backtest/pairs_trading.py (et --hold-months 6) pour afficher cette section.")
+else:
+    st.caption(
+        "39 paires du même secteur ; formation sur 12 mois (régression des log-prix, demi-vie du spread), "
+        "entrée si 2 < |z| < 4, sortie à la convergence (z = 0), au stop-loss (|z| > 4) ou en fin de période. "
+        "Net de coûts."
+    )
+    pairs_daily["date"] = pd.to_datetime(pairs_daily["date"])
+    pairs_daily["version"] = pairs_daily["hold_months"].map(lambda h: f"{h} mois")
+    monthly_p = (pairs_daily.set_index("date").groupby("version")["ret"]
+                 .resample("ME").apply(lambda x: (1 + x).prod() - 1).reset_index())
+    pcols = st.columns(monthly_p["version"].nunique())
+    for col, (ver, g) in zip(pcols, monthly_p.groupby("version")):
+        rr = g["ret"]
+        n = len(rr)
+        wealth = (1 + rr).cumprod()
+        with col:
+            st.markdown(f"**Trading {ver}**")
+            a, b = st.columns(2)
+            a.metric("Rendement annualisé", f"{wealth.iloc[-1] ** (12 / n) - 1:+.1%}")
+            b.metric("Sharpe", f"{rr.mean() / rr.std() * 12 ** 0.5:.2f}")
+            a.metric("t-stat", f"{rr.mean() / (rr.std() / n ** 0.5):.2f}")
+            b.metric("Drawdown max", f"{(wealth / wealth.cummax() - 1).min():.1%}")
+    monthly_p["valeur"] = (1 + monthly_p["ret"]).groupby(monthly_p["version"]).cumprod()
+    versions = sorted(monthly_p["version"].unique(), key=lambda v: int(v.split()[0]))
+    pair_colors = ["#6250d6", "#e87ba4"][: len(versions)]
+    p_chart = alt.Chart(monthly_p).mark_line(strokeWidth=2).encode(
+        x=alt.X("date:T", title=None, axis=alt.Axis(format="%Y", tickCount="year")),
+        y=alt.Y("valeur:Q", title="Valeur (départ = 1 $)", scale=alt.Scale(zero=False)),
+        color=alt.Color("version:N", title="Période de trading",
+                        scale=alt.Scale(domain=versions, range=pair_colors)),
+        tooltip=[alt.Tooltip("version:N", title="Version"), alt.Tooltip("date:T", title="Mois", format="%Y-%m"),
+                 alt.Tooltip("valeur:Q", title="Valeur", format=".3f"),
+                 alt.Tooltip("ret:Q", title="Rendement du mois", format="+.2%")],
+    )
+    st.altair_chart((baseline + p_chart).properties(height=300), width="stretch")
+
+    ver_choice = st.radio("Détail des trades", versions, horizontal=True)
+    t = pairs_trades[pairs_trades["hold_months"] == int(ver_choice.split()[0])]
+    c1, c2 = st.columns([1, 2])
+    exits = (t["exit"].value_counts(normalize=True).rename("part").reset_index()
+             .rename(columns={"index": "exit"}))
+    exits["part"] = (exits["part"] * 100).round(1)
+    c1.markdown("**Comment les trades se terminent (%)**")
+    c1.dataframe(exits.rename(columns={"exit": "sortie", "part": "% des trades"}), hide_index=True, width="stretch")
+    by_group = (t.groupby("group").agg(trades=("ret", "size"), rend_moyen_pct=("ret", "mean"),
+                                       gagnants_pct=("ret", lambda x: (x > 0).mean()),
+                                       duree_moy_j=("days", "mean"))
+                .sort_values("trades", ascending=False).reset_index())
+    by_group["rend_moyen_pct"] = (by_group["rend_moyen_pct"] * 100).round(2)
+    by_group["gagnants_pct"] = (by_group["gagnants_pct"] * 100).round(0)
+    by_group["duree_moy_j"] = by_group["duree_moy_j"].round(1)
+    c2.markdown("**Par groupe de paires**")
+    c2.dataframe(by_group.rename(columns={"group": "groupe"}), hide_index=True, width="stretch")
+    st.caption(
+        "Beaucoup de stop-loss et peu de convergences : les écarts estimés sur les 12 derniers mois "
+        "ne se referment pas dans les mois suivants. Un retour à la moyenne observé dans le passé (in-sample) "
+        "ne garantit pas qu'il se reproduira (out-of-sample)."
+    )
 
 # ---------------------------------------------------------------- méthode
 with st.expander("Méthode et limites"):

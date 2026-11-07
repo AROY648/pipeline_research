@@ -60,6 +60,8 @@ raw_factors AS (
         CASE WHEN m.month_m12 = m.month - INTERVAL 12 MONTH       -- 12 mois d'historique sans trou
              THEN m.adj_close_m1 / m.adj_close_m12 - 1 END        AS mom_12_1,
         m.vol_60d,
+                -- Retournement court terme : rendement du mois t lui-même (le mois que le momentum 12-1 exclut)
+        m.ret_1m                                                   AS rev_1m,
         -- Capitalisation = prix affiché x nombre d'actions de la dernière période publiée
         m.close * p.shares_outstanding                             AS market_cap_cad,
         p.book_equity_cad / NULLIF(m.close * p.shares_outstanding, 0) AS book_to_market,
@@ -80,6 +82,8 @@ SELECT
         NTILE(5) OVER (PARTITION BY month, vol_60d IS NULL ORDER BY vol_60d) END               AS q_volatility,
     CASE WHEN book_to_market IS NOT NULL THEN
         NTILE(5) OVER (PARTITION BY month, book_to_market IS NULL ORDER BY book_to_market) END AS q_value,
+    CASE WHEN rev_1m IS NOT NULL THEN
+        NTILE(5) OVER (PARTITION BY month, rev_1m IS NULL ORDER BY rev_1m) END                 AS q_reversal,
     CASE WHEN book_to_market IS NOT NULL THEN
         PERCENT_RANK() OVER (PARTITION BY month, book_to_market IS NULL ORDER BY book_to_market) END AS value_rank
 FROM raw_factors;
